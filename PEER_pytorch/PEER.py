@@ -81,14 +81,14 @@ class PEER(Module):
 
         # product key logic
 
-        top_k = self.num_experts_per_head
+        top_k = int(sqrt(self.num_experts_per_head))
 
         (scores_x, scores_y), (indices_x, indices_y) = sim.topk(top_k, dim = -1)
 
         all_scores = einx.add('... i, ... j -> ... (i j)', scores_x, scores_y)
         all_indices = einx.add('... i, ... j -> ... (i j)', indices_x * self.num_keys, indices_y)
 
-        scores, indices = all_scores.topk(top_k, dim = -1)
+        scores, indices = all_scores.topk(self.num_experts_per_head, dim = -1)
 
         # build the weight matrices for projecting in and out
         # basically the experts are the gathered parameters for an MLP
