@@ -14,6 +14,9 @@ from einops.layers.torch import Rearrange
 def exists(v):
     return v is not None
 
+def default(v, d):
+    return v if exists(v) else d
+
 # main class
 
 class PEER(Module):
@@ -30,6 +33,7 @@ class PEER(Module):
         num_experts_per_head = 16,   # he settled on 16, but was 32 in PKM paper
         activation = nn.GELU,
         dim_key = 128,
+        product_key_topk = None
     ):
         """
         einops notation
@@ -55,6 +59,7 @@ class PEER(Module):
         # queries and keys for product-key
 
         assert sqrt(num_experts).is_integer(), '`num_experts` needs to be a square'
+
         self.num_keys = int(sqrt(num_experts))
 
         self.to_queries = nn.Sequential(
@@ -62,6 +67,7 @@ class PEER(Module):
             Rearrange('b n (p h d) -> p b n h d', p = 2, h = heads)
         )
 
+        self.product_key_topk = default(product_key_topk, num_experts_per_head)
         self.num_experts_per_head = num_experts_per_head
 
         self.keys = nn.Parameter(torch.zeros(heads, self.num_keys, 2, dim_key))
@@ -81,9 +87,7 @@ class PEER(Module):
 
         # product key logic
 
-        top_k = int(sqrt(self.num_experts_per_head))
-
-        (scores_x, scores_y), (indices_x, indices_y) = sim.topk(top_k, dim = -1)
+        (scores_x, scores_y), (indices_x, indices_y) = sim.topk(self.product_key_topk, dim = -1)
 
         all_scores = einx.add('... i, ... j -> ... (i j)', scores_x, scores_y)
         all_indices = einx.add('... i, ... j -> ... (i j)', indices_x * self.num_keys, indices_y)
