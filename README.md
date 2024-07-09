@@ -19,8 +19,8 @@ from PEER_pytorch import PEER
 peer = PEER(
     dim = 512,
     heads = 8,                   # tested up to 32 - (hk = heads * num_experts_per_head (16))
-    num_experts = 1_000_000,     # they chose 1 million
-    num_experts_per_head = 16,   # they settled on 16, but was 32 in PKM paper
+    num_experts = 1_000_000,     # he chose 1 million
+    num_experts_per_head = 16,   # he settled on 16, but was 32 in PKM paper
     dim_key = 128,
 ).cuda()
 
