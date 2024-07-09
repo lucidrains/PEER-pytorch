@@ -1,3 +1,5 @@
+<img src="./peer.png" width="400px"></img>
+
 ## PEER - Pytorch (wip)
 
 Pytorch implementation of the PEER block from the Deepmind paper, <a href="https://arxiv.org/abs/2407.04153">Mixture of A Million Experts</a>, by Xu Owen He.
