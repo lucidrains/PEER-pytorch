@@ -17,6 +17,17 @@ def exists(v):
 def default(v, d):
     return v if exists(v) else d
 
+# rmsnorm
+
+class RMSNorm(Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.scale = dim ** 0.5
+        self.gamma = nn.Parameter(torch.zeros(dim))
+
+    def forward(self, x):
+        return F.normalize(x, dim = -1) * self.scale * (self.gamma + 1)
+
 # main class
 
 class PEER(Module):
@@ -33,7 +44,8 @@ class PEER(Module):
         num_experts_per_head = 16,   # he settled on 16, but was 32 in PKM paper
         activation = nn.GELU,
         dim_key = 128,
-        product_key_topk = None
+        product_key_topk = None,
+        pre_rmsnorm = False
     ):
         """
         einops notation
@@ -46,6 +58,8 @@ class PEER(Module):
         """
 
         super().__init__()
+
+        self.norm = RMSNorm(dim) if pre_rmsnorm else nn.Identity()
 
         # experts that will form the mlp project in / out weights
 
@@ -77,6 +91,8 @@ class PEER(Module):
         self,
         x
     ):
+        x = self.norm(x)
+
         # queries
 
         queries = self.to_queries(x)

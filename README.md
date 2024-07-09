@@ -22,11 +22,12 @@ peer = PEER(
     num_experts = 1_000_000,     # he chose 1 million
     num_experts_per_head = 16,   # he settled on 16, but was 32 in PKM paper
     dim_key = 128,
+    pre_rmsnorm = True
 ).cuda()
 
 x = torch.randn(2, 1024, 512).cuda()
 
-out = peer(x)
+out = peer(x) + x
 
 assert x.shape == out.shape
 ```
