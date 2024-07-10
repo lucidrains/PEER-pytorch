@@ -43,7 +43,7 @@ class PEER(Module):
         num_experts = 1_000_000,     # he chose 1 million
         num_experts_per_head = 16,   # he settled on 16, but was 32 in PKM paper
         activation = nn.GELU,
-        dim_key = 128,
+        dim_key = None,
         product_key_topk = None,
         pre_rmsnorm = False
     ):
@@ -73,7 +73,9 @@ class PEER(Module):
         # queries and keys for product-key
 
         assert sqrt(num_experts).is_integer(), '`num_experts` needs to be a square'
+        assert (dim % 2) == 0, 'feature dimension should be divisible by 2'
 
+        dim_key = default(dim_key, dim // 2)
         self.num_keys = int(sqrt(num_experts))
 
         self.to_queries = nn.Sequential(
