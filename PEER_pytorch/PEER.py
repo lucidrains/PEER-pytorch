@@ -110,7 +110,9 @@ class PEER(Module):
         all_scores = einx.add('... i, ... j -> ... (i j)', scores_x, scores_y)
         all_indices = einx.add('... i, ... j -> ... (i j)', indices_x * self.num_keys, indices_y)
 
-        scores, indices = all_scores.topk(self.num_experts_per_head, dim = -1)
+        scores, pk_indices = all_scores.topk(self.num_experts_per_head, dim = -1)
+
+        indices = all_indices.gather(-1, pk_indices)
 
         # build the weight matrices for projecting in and out
         # basically the experts are the gathered parameters for an MLP
