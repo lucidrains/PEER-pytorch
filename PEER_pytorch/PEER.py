@@ -45,7 +45,8 @@ class PEER(Module):
         activation = nn.GELU,
         dim_key = 128,
         product_key_topk = None,
-        pre_rmsnorm = False
+        pre_rmsnorm = False,
+        glu = False
     ):
         """
         einops notation
@@ -65,6 +66,12 @@ class PEER(Module):
 
         self.weight_down_embed = nn.Embedding(num_experts, dim)
         self.weight_up_embed = nn.Embedding(num_experts, dim)
+
+        # experimental glu
+
+        self.glu = glu
+        if glu:
+            self.gate_embed = nn.Embedding(num_experts, dim)
 
         # activation function, defaults to gelu
 
