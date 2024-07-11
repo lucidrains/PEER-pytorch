@@ -35,7 +35,7 @@ class PK(Module):
         n - sequence
         d - dimension
         h - heads
-        p - 2 for product key
+        p - product keys
         k - number of keys
         """
 
