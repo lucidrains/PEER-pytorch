@@ -45,7 +45,8 @@ class PEER(Module):
         activation = nn.GELU,
         dim_key = None,
         product_key_topk = None,
-        pre_rmsnorm = False
+        pre_rmsnorm = False,
+        dropout = 0.
     ):
         """
         einops notation
@@ -89,10 +90,15 @@ class PEER(Module):
         self.keys = nn.Parameter(torch.zeros(heads, self.num_keys, 2, dim_key))
         nn.init.normal_(self.keys, std = 0.02)
 
+        # dropout
+
+        self.dropout = nn.Dropout(dropout)
+
     def forward(
         self,
         x
     ):
+
         x = self.norm(x)
 
         # queries
@@ -125,6 +131,7 @@ class PEER(Module):
         x = einsum(x, weights_down, 'b n d, b n h k d -> b n h k')
 
         x = self.activation(x)
+        x = self.dropout(x)
 
         x = x * scores.softmax(dim = -1)
 
