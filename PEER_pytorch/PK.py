@@ -60,6 +60,10 @@ class PK(Module):
         self.topk = product_key_topk
         self.final_topk = final_topk
 
+        # the maximum index, or the total space being indexed into
+
+        self.max_index = int(num_keys ** product_keys)
+
     def forward(
         self,
         x,

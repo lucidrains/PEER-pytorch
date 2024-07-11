@@ -1,6 +1,6 @@
 [project]
 name = "PEER-pytorch"
-version = "0.0.10"
+version = "0.0.11"
 description = "PEER - Pytorch"
 authors = [
     { name = "Phil Wang", email = "lucidrains@gmail.com" }
