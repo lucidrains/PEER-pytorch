@@ -39,12 +39,13 @@ class PEER(Module):
         self,
         dim,
         *,
-        heads = 8,                   # tested up to 32 - (hk = heads * num_experts_per_head (16))
-        num_experts = 1_000_000,     # he chose 1 million
-        num_experts_per_head = 16,   # he settled on 16, but was 32 in PKM paper
+        heads = 8,                       # tested up to 32 - (hk = heads * num_experts_per_head (16))
+        num_experts = 1_000_000,         # he chose 1 million
+        num_experts_per_head = 16,       # he settled on 16, but was 32 in PKM paper
         activation = nn.GELU,
         dim_key = None,
         product_key_topk = None,
+        separate_embed_per_head = False, # @smerky notes that heads may retrieve same redundant neurons. this setting would allow for separate embeds per head and prevent that
         pre_rmsnorm = False,
         dropout = 0.
     ):
@@ -62,10 +63,18 @@ class PEER(Module):
 
         self.norm = RMSNorm(dim) if pre_rmsnorm else nn.Identity()
 
+        # whether to do separate embedding per head
+
+        num_expert_sets = 1 if not separate_embed_per_head else heads
+
+        self.heads = heads
+        self.separate_embed_per_head = separate_embed_per_head
+        self.num_experts = num_experts
+
         # experts that will form the mlp project in / out weights
 
-        self.weight_down_embed = nn.Embedding(num_experts, dim)
-        self.weight_up_embed = nn.Embedding(num_experts, dim)
+        self.weight_down_embed = nn.Embedding(num_experts * num_expert_sets, dim)
+        self.weight_up_embed = nn.Embedding(num_experts * num_expert_sets, dim)
 
         # activation function, defaults to gelu
 
@@ -119,6 +128,12 @@ class PEER(Module):
         scores, pk_indices = all_scores.topk(self.num_experts_per_head, dim = -1)
 
         indices = all_indices.gather(-1, pk_indices)
+
+        # if separate embeds per head, add appropriate offsets per head
+
+        if self.separate_embed_per_head:
+            head_expert_offsets = torch.arange(self.heads, device = x.device) * self.num_experts
+            indices = einx.add('b n h k, h -> b n h k', indices, head_expert_offsets)
 
         # build the weight matrices for projecting in and out
         # basically the experts are the gathered parameters for an MLP
