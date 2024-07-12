@@ -72,7 +72,7 @@ class PK(Module):
 
         queries = self.to_queries(x)
 
-        sim = einsum(queries, self.keys, 'p b n h d, p k h d -> p b h k')
+        sim = einsum(queries, self.keys, 'p b n h d, p k h d -> p b n h k')
 
         scores, indices = sim.topk(self.topk, dim = -1)
 
@@ -119,5 +119,5 @@ if __name__ == '__main__':
     x = torch.randn(2, 1024, 512)
     score, indices = pk(x)
 
-    assert score.shape == (2, 8, 10)
-    assert indices.shape == (2, 8, 10)
+    assert score.shape == (2, 1024, 8, 10)
+    assert indices.shape == (2, 1024, 8, 10)
