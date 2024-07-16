@@ -43,7 +43,6 @@ class PKAttention(Module):
         key_value_pk_topk = 16,
         dim_key = None,
         product_keys = 2,
-        product_key_topk = None,
         pre_rmsnorm = False,
         dropout = 0.
     ):
@@ -102,6 +101,7 @@ class PKAttention(Module):
         x,
         mask = None
     ):
+        device = x.device
 
         x = self.norm(x)
 
@@ -114,6 +114,9 @@ class PKAttention(Module):
         # keys and values
 
         kv_scores, indices = self.to_kv_pk_indices(x, softmax_scores = True)
+
+        offsets = torch.arange(self.heads, device = device) * self.num_key_values
+        indices = einx.add('b n h k, h -> b n h k', indices, offsets)
 
         k, v = self.keys(indices), self.values(indices)
 
