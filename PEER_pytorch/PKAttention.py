@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.nn import Module, ModuleList
 
 import einx
-from einops import einsum
+from einops import einsum, pack, unpack
 from einops.layers.torch import Rearrange
 
 from PEER_pytorch.PK import PK
@@ -18,6 +18,12 @@ def exists(v):
 
 def default(v, d):
     return v if exists(v) else d
+
+def pack_one(t, pattern):
+    return pack([t], pattern)
+
+def unpack_one(t, ps, pattern):
+    return unpack(t, ps, pattern)[0]
 
 # rmsnorm
 
@@ -72,8 +78,8 @@ class PKAttention(Module):
 
         # keys and values selected using product-key
 
-        self.keys = nn.Embedding(num_key_values * heads, dim)
-        self.values = nn.Embedding(num_key_values * heads, dim)
+        self.keys = nn.EmbeddingBag(num_key_values * heads, dim, mode = 'sum')
+        self.values = nn.EmbeddingBag(num_key_values * heads, dim, mode = 'sum')
 
         assert sqrt(num_key_values).is_integer(), '`num_key_values` needs to be a square'
         assert (dim % 2) == 0, 'feature dimension should be divisible by 2'
@@ -118,12 +124,13 @@ class PKAttention(Module):
         offsets = torch.arange(self.heads, device = device) * self.num_key_values
         indices = einx.add('b n h k, h -> b n h k', indices, offsets)
 
-        k, v = self.keys(indices), self.values(indices)
+        indices, packed_shape = pack_one(indices, '* k')
+        kv_scores, _ = pack_one(kv_scores, '* k')
 
-        # multiply by softmaxed scores from product key module
+        k, v = self.keys(indices, per_sample_weights = kv_scores), self.values(indices, per_sample_weights = kv_scores)
 
-        k = einsum(k, kv_scores, '... k d, ... k -> ... d')
-        v = einsum(v, kv_scores, '... k d, ... k -> ... d')
+        k = unpack_one(k, packed_shape, '* d')
+        v = unpack_one(v, packed_shape, '* d')
 
         # usual multihead self attention
 
