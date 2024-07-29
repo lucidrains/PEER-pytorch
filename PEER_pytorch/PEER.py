@@ -47,6 +47,7 @@ class PEER(Module):
         product_key_topk = None,
         separate_embed_per_head = False, # @smerky notes that heads may retrieve same redundant neurons. this setting would allow for separate embeds per head and prevent that
         pre_rmsnorm = False,
+        softmax_on_scores = True,
         dropout = 0.
     ):
         """
@@ -103,6 +104,13 @@ class PEER(Module):
 
         self.dropout = nn.Dropout(dropout)
 
+        # whether to use softmax on scores
+
+        # Csordas et al claims non-competing activation helps in PKM setting
+        # https://arxiv.org/pdf/2310.10837 - Table 2 in Section 6.2
+
+        self.score_activation = nn.Softmax(dim = -1) if softmax_on_scores else nn.ReLU()
+
     def forward(
         self,
         x
@@ -148,7 +156,7 @@ class PEER(Module):
         x = self.activation(x)
         x = self.dropout(x)
 
-        x = x * scores.softmax(dim = -1)
+        x = x * self.score_activation(scores)
 
         x = einsum(x, weights_up, 'b n h k, b n h k d -> b n d')
 

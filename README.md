@@ -44,3 +44,14 @@ assert x.shape == out.shape
     url     = {https://api.semanticscholar.org/CorpusID:271038610}
 }
 ```
+
+```bibtex
+@article{Csordas2023ApproximatingTF,
+    title   = {Approximating Two-Layer Feedforward Networks for Efficient Transformers},
+    author  = {R'obert Csord'as and Kazuki Irie and J{\"u}rgen Schmidhuber},
+    journal = {ArXiv},
+    year    = {2023},
+    volume  = {abs/2310.10837},
+    url     = {https://api.semanticscholar.org/CorpusID:264172384}
+}
+```
