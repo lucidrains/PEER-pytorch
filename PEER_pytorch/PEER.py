@@ -39,7 +39,7 @@ class PEER(Module):
         self,
         dim,
         *,
-        heads = 8,                       # tested up to 32 - (hk = heads * num_experts_per_head (16))
+        heads = 8,                       # tested up to 32 - (hk = heads * num_experts_per_head (16)) - for non-competing scores, increase number of heads to desired value for the inner dimension of the hypernetwork mlp
         num_experts = 1_000_000,         # he chose 1 million
         num_experts_per_head = 16,       # he settled on 16, but was 32 in PKM paper
         activation = nn.GELU,
@@ -47,7 +47,7 @@ class PEER(Module):
         product_key_topk = None,
         separate_embed_per_head = False, # @smerky notes that heads may retrieve same redundant neurons. this setting would allow for separate embeds per head and prevent that
         pre_rmsnorm = False,
-        softmax_on_scores = True,
+        non_competing_scores = True,
         dropout = 0.
     ):
         """
@@ -95,7 +95,7 @@ class PEER(Module):
         )
 
         self.product_key_topk = default(product_key_topk, num_experts_per_head)
-        self.num_experts_per_head = num_experts_per_head
+        self.num_experts_per_head_topk = num_experts_per_head if not non_competing_scores else 1
 
         self.keys = nn.Parameter(torch.zeros(heads, self.num_keys, 2, dim_key))
         nn.init.normal_(self.keys, std = 0.02)
@@ -109,7 +109,7 @@ class PEER(Module):
         # Csordas et al claims non-competing activation helps in PKM setting
         # https://arxiv.org/pdf/2310.10837 - Table 2 in Section 6.2
 
-        self.score_activation = nn.Softmax(dim = -1) if softmax_on_scores else nn.ReLU()
+        self.score_activation = nn.Softmax(dim = -1) if not non_competing_scores else nn.ReLU()
 
     def forward(
         self,
@@ -133,7 +133,7 @@ class PEER(Module):
         all_scores = einx.add('... i, ... j -> ... (i j)', scores_x, scores_y)
         all_indices = einx.add('... i, ... j -> ... (i j)', indices_x * self.num_keys, indices_y)
 
-        scores, pk_indices = all_scores.topk(self.num_experts_per_head, dim = -1)
+        scores, pk_indices = all_scores.topk(self.num_experts_per_head_topk, dim = -1)
 
         indices = all_indices.gather(-1, pk_indices)
 
