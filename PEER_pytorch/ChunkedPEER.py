@@ -5,11 +5,12 @@ from functools import partial
 from torch.utils.checkpoint import checkpoint
 
 from PEER_pytorch.PEER import PEER
+from PEER_pytorch.PEERLora import PEERLora
 
 class ChunkedPEER(Module):
     def __init__(
         self,
-        peer: PEER,
+        peer: PEER | PEERLora,
         seq_chunk_size: int = 128
     ):
         super().__init__()

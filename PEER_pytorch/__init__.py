@@ -1,4 +1,5 @@
 from PEER_pytorch.PEER import PEER
+from PEER_pytorch.PEERLora import PEERLora
 
 from PEER_pytorch.ChunkedPEER import ChunkedPEER
 
