@@ -119,6 +119,13 @@ class PEERLora(Module):
 
         self.score_activation = nn.Softmax(dim = -1) if not non_competing_scores else nn.ReLU()
 
+        # init
+
+        nn.init.normal_(self.proj_in_lora_a.weight, std = 0.02)
+        nn.init.normal_(self.proj_out_lora_b.weight, std = 0.02)
+        nn.init.normal_(self.proj_in_lora_b.weight, std = 0.02)
+        nn.init.normal_(self.proj_out_lora_a.weight, std = 0.02)
+
     @property
     def lora_k(self):
         return self.heads * self.num_experts_per_head
