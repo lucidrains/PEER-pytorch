@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.nn import Module, ModuleList
 
 import einx
-from einops import einsum
+from einops import einsum, rearrange
 from einops.layers.torch import Rearrange
 
 # helper functions
@@ -113,7 +113,8 @@ class PEER(Module):
 
     def forward(
         self,
-        x
+        x,
+        train_mem_mask = None # bool[num_experts,]
     ):
 
         x = self.norm(x)
@@ -148,6 +149,21 @@ class PEER(Module):
 
         weights_down = self.weight_down_embed(indices)
         weights_up = self.weight_up_embed(indices)
+
+        # maybe sparse fine tune
+
+        if exists(train_mem_mask):
+            # https://openreview.net/forum?id=LGo7U1m24L
+
+            assert len(train_mem_mask) == self.num_experts
+
+            mask = rearrange(train_mem_mask[indices], '... -> ... 1')
+
+            masked_weights_down = weights_down * mask
+            masked_weights_up = weights_up * mask
+
+            weights_down = weights_down.detach() + masked_weights_down - masked_weights_down.detach()
+            weights_up = weights_up.detach() + masked_weights_up - masked_weights_up.detach()
 
         # below is basically Algorithm 1 in paper
 
